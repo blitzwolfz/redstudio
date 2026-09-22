@@ -31,6 +31,6 @@ Headless mode writes the native scene protocol to `/tmp/red-studio.scene` (overr
 - JSON file view and native component gallery.
 - Dark native pixel layout with status and output panels.
 
-Keyboard shortcuts: `Ctrl+S` save, `Ctrl+R` run, `Ctrl+B` build, `Ctrl+T` test, `F2` rename the selected file, and `Ctrl+D` then type `DELETE` to confirm deletion. Clicking **New file** in the explorer opens its name prompt. In the HTTP view, click the URL field, edit it, then press Return or **Send GET**.
+Keyboard shortcuts: `Ctrl+S` save, `Ctrl+R` run, `Ctrl+B` build an executable, `Ctrl+Shift+B` compile bytecode, `Ctrl+Shift+F` format, `Ctrl+T` test, arrow keys move the editor cursor, `F2` rename the selected file, and `Ctrl+D` then type `DELETE` to confirm deletion. `Ctrl+Alt+S` opens Save As. Clicking **New file** in the explorer opens its name prompt. The Tasks view shows queued, running and completed work. In the HTTP view, click the URL field, edit it, then press Return or **Send GET**.
 
 The current Red HTTP client is plain HTTP only. The source editor is intentionally a lightweight buffer/editor foundation, not a language-server editor.

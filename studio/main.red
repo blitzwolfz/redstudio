@@ -75,17 +75,18 @@ class RedStudio {
 
   save() {
     const doc = this.current_document();
-    if (doc == nil) { return; }
-    try { doc.save(); this.status = "Saved ${doc.name}"; }
-    catch (e) { this.status = "Save failed: ${e.message}"; }
+    if (doc == nil) { return false; }
+    try { doc.save(); this.status = "Saved ${doc.name}"; return true; }
+    catch (e) { this.status = "Save failed: ${e.message}"; return false; }
   }
 
   run_action(action) {
     let doc = this.current_document();
     if (doc == nil) { this.status = "Open a source file first"; return; }
-    if (doc.dirty()) { this.save(); }
-    if (action == "run" and path.ext(doc.path) != ".red") {
-      this.status = "Select a .red file to run"; return;
+    if (doc.dirty() and !this.save()) { return; }
+    if ((action == "run" or action == "build" or action == "compile" or
+         action == "format") and path.ext(doc.path) != ".red") {
+      this.status = "Select a .red file for this toolchain action"; return;
     }
     let target = doc.path;
     if (action == "test" and is_dir(path.join(this.project.root, "tests"))) {
@@ -200,9 +201,11 @@ class RedStudio {
 
     // Action bar and document tabs.
     s.text(274, 79, "File   Edit   View   Run   Build   Tools   Help", MUTED, 12);
-    s.button(1078, 67, 86, 32, "Run", color.WHITE, ACCENT);
-    s.button(1174, 67, 92, 32, "Build", TEXT, SURFACE);
-    s.button(1275, 67, 92, 32, "Test", TEXT, SURFACE);
+    s.button(978, 67, 78, 32, "Run", color.WHITE, ACCENT);
+    s.button(1064, 67, 78, 32, "Build", TEXT, SURFACE);
+    s.button(1150, 67, 78, 32, "Compile", TEXT, SURFACE);
+    s.button(1236, 67, 78, 32, "Format", TEXT, SURFACE);
+    s.button(1322, 67, 78, 32, "Test", TEXT, SURFACE);
     s.fill(252, 116, 1188, 45, color.rgb(0x1b, 0x21, 0x2b));
     for (let i in range(0, this.documents.len())) {
       let label = this.documents[i].name;
@@ -236,6 +239,24 @@ class RedStudio {
           s.text(286, 228, "${doc.name} is not valid JSON: ${e.message}", AMBER, 13);
         }
       } else { s.text(286, 226, "Open a .json file to inspect its values.", MUTED, 13); }
+    } else if (this.page == "Tasks") {
+      s.text(286, 196, "BACKGROUND TASKS", MUTED, 11);
+      if (this.manager.tasks.len() == 0) {
+        s.text(286, 228, "No tasks yet. Use Run, Build or Test to queue work.", MUTED, 13);
+      } else {
+        let task_count = this.manager.tasks.len();
+        if (task_count > 18) { task_count = 18; }
+        for (let i in range(0, task_count)) {
+          const task = this.manager.tasks[this.manager.tasks.len() - 1 - i];
+          let task_color = AMBER;
+          if (task["status"] == "running") { task_color = ACCENT; }
+          if (task["status"] == "completed") { task_color = GREEN; }
+          if (task["status"] == "failed") { task_color = color.rgb(0xe0, 0x6a, 0x65); }
+          s.text(286, 226 + i * 26,
+                 "#${task["id"]}   ${task["action"].upper()}   ${path.base(task["file"])}   ${task["status"].upper()}",
+                 task_color, 13);
+        }
+      }
     } else { this.draw_editor(s); }
 
     // Output pane.
@@ -274,6 +295,8 @@ class RedStudio {
     if (one.kind == event.Kind.Key) {
       if (one.matches("ctrl+s")) { this.save(); return; }
       if (one.matches("ctrl+r")) { this.run_action("run"); return; }
+      if (one.matches("ctrl+shift+b")) { this.run_action("compile"); return; }
+      if (one.matches("ctrl+shift+f")) { this.run_action("format"); return; }
       if (one.matches("ctrl+b")) { this.run_action("build"); return; }
       if (one.matches("ctrl+t")) { this.run_action("test"); return; }
       if (one.matches("ctrl+alt+s")) {
@@ -314,6 +337,11 @@ class RedStudio {
             } else if (this.prompt_mode == "delete" and this.selected_path != nil) {
               if (this.prompt_value != "DELETE") {
                 this.status = "Type DELETE to confirm file deletion"; return;
+              }
+              for (let doc in this.documents) {
+                if (doc.path == this.selected_path and doc.dirty()) {
+                  throw error("Save or close the dirty document before deleting it", doc.path, "io");
+                }
               }
               this.project.remove(this.selected_path);
               this.refresh_entries(); this.status = "Deleted ${path.base(this.selected_path)}";
@@ -392,9 +420,11 @@ class RedStudio {
         if (entry["directory"]) { this.directory = entry["path"]; this.refresh_entries(); }
         else { this.open_file(entry["path"]); }
       }
-    } else if (x >= 1078 and x < 1164 and y < 110) { this.run_action("run"); }
-    else if (x >= 1174 and x < 1266 and y < 110) { this.run_action("build"); }
-    else if (x >= 1275 and x < 1370 and y < 110) { this.run_action("test"); }
+    } else if (x >= 978 and x < 1056 and y < 110) { this.run_action("run"); }
+    else if (x >= 1064 and x < 1142 and y < 110) { this.run_action("build"); }
+    else if (x >= 1150 and x < 1228 and y < 110) { this.run_action("compile"); }
+    else if (x >= 1236 and x < 1314 and y < 110) { this.run_action("format"); }
+    else if (x >= 1322 and x < 1400 and y < 110) { this.run_action("test"); }
     else if (y >= 116 and y < 161) {
       const index = floor((x - 266) / 188);
       if (index >= 0 and index < this.documents.len()) { this.active = index; }
@@ -403,12 +433,16 @@ class RedStudio {
 
   run() {
     this.window = native.Window({"title": "Red Studio", "cols": 120, "rows": 42});
-    this.window.start();
     try {
+      this.window.start();
       while (this.window.running) {
         const fresh = this.manager.collect();
         if (fresh.len() > 0) {
           for (let result in fresh) {
+            if (result.get("event", "") == "running") {
+              this.status = "RUNNING · task #${result["id"]}";
+              continue;
+            }
             this.output = result["out"];
             if (result["err"] != "") { this.output += "\n" + result["err"]; }
             this.status = "${result["status"].upper()} · ${result["action"]} · ${result["duration"]}s";

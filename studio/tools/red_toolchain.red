@@ -3,8 +3,12 @@ fun executable() { return env("RED_EXECUTABLE", "red"); }
 
 fun invoke(action, file, working_directory = nil) {
   let command = [executable()];
-  if (action != "run") { command.push(action); }
-  command.push(file);
+  if (action == "format") {
+    command.push("fmt"); command.push("-w"); command.push(file);
+  } else {
+    if (action != "run") { command.push(action); }
+    command.push(file);
+  }
   let result = run(command);
   return {"action": action, "command": command.join(" "),
           "code": result.get("code", -1), "out": result.get("out", ""),

@@ -9,6 +9,7 @@ fun worker(jobs, results) {
     const job = jobs.recv();
     if (job == nil) { return; }
     try {
+      results.try_send({"event": "running", "id": job["id"]});
       let result = nil;
       if (job["action"] == "http-get") {
         const reply = http_inspector.get(job["file"]);
@@ -50,6 +51,7 @@ class Manager {
     this.results = chan(64);
     this.next_id = 1;
     this.history = [];
+    this.tasks = [];
     this.workers = [];
     if (!headless) {
       for (let i in range(0, concurrency)) { this.workers.push(spawn worker(this.jobs, this.results)); }
@@ -59,8 +61,10 @@ class Manager {
   submit(action, file, cwd) {
     const id = this.next_id;
     this.next_id += 1;
-    this.jobs.send({"id": id, "action": action, "file": file,
-                    "cwd": cwd, "started": time(), "status": "queued"});
+    const job = {"id": id, "action": action, "file": file,
+                 "cwd": cwd, "started": time(), "status": "queued"};
+    this.tasks.push(job);
+    this.jobs.send(job);
     return id;
   }
 
@@ -69,6 +73,19 @@ class Manager {
     for (;;) {
       const result = this.results.try_recv();
       if (result == nil) { break; }
+      for (let task in this.tasks) {
+        if (task["id"] != result["id"]) { continue; }
+        if (result["event"] == "running") {
+          task["status"] = "running";
+          task["started"] = time();
+          fresh.push(result);
+        } else {
+          task["status"] = result["status"];
+          task["duration"] = result["duration"];
+        }
+        break;
+      }
+      if (result.get("event", "") == "running") { continue; }
       this.history.push(result);
       fresh.push(result);
     }

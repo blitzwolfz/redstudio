@@ -36,3 +36,14 @@ Headless mode writes the native scene protocol to `/tmp/red-studio.scene` (overr
 Keyboard shortcuts: `Ctrl+S` save, `Ctrl+R` run, `Ctrl+B` build an executable, `Ctrl+Shift+B` compile bytecode, `Ctrl+Shift+F` format, `Ctrl+T` test, arrow keys move the editor cursor, `F2` rename the selected file, and `Ctrl+D` then type `DELETE` to confirm deletion. `Ctrl+Alt+S` opens Save As. Click **New file** in the explorer to enter a filename. The Search view runs a project search in a background task. The Tasks view shows queued, running and completed work. In the HTTP view, edit the URL, toggle the method between GET and POST, and click **Send**; click the body panel to edit a POST JSON body.
 
 The current Red HTTP client is plain HTTP only. The source editor is intentionally a lightweight buffer/editor foundation, not a language-server editor.
+
+## Standalone executable
+
+Build the standalone macOS executable from the Red interpreter in the sibling checkout:
+
+```sh
+mkdir -p dist
+../Red/build/red build studio/main.red -o dist/RedStudio
+```
+
+Launch the bundled program with the native backend using `./studio/run-built.sh`, or render it without a window using `./studio/run-built-headless.sh`. The launcher supplies the sibling `andy-gui` backend and project path. Set `RED_EXECUTABLE` only for the source-based launch scripts; the standalone program does not need the Red interpreter at runtime.

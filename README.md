@@ -25,13 +25,14 @@ Headless mode writes the native scene protocol to `/tmp/red-studio.scene` (overr
 ## Current workbench
 
 - Project explorer with lazy one-directory-at-a-time navigation, text-file tabs, create, rename and confirmed file delete.
+- Background text search across Red source, documentation and common project files.
 - Per-tab editing buffers, dirty markers, atomic save, and basic keyboard editing.
 - Dirty buffers are written to temporary recovery files and restored on a later launch.
 - Background Red run, build and test jobs with output and duration reporting.
-- HTTP GET inspector for plain HTTP, including response headers and JSON formatting.
+- HTTP GET and POST inspector for plain HTTP, including editable JSON bodies, response headers and JSON formatting.
 - JSON file view and native component gallery.
 - Dark native pixel layout with status and output panels.
 
-Keyboard shortcuts: `Ctrl+S` save, `Ctrl+R` run, `Ctrl+B` build an executable, `Ctrl+Shift+B` compile bytecode, `Ctrl+Shift+F` format, `Ctrl+T` test, arrow keys move the editor cursor, `F2` rename the selected file, and `Ctrl+D` then type `DELETE` to confirm deletion. `Ctrl+Alt+S` opens Save As. Clicking **New file** in the explorer opens its name prompt. The Tasks view shows queued, running and completed work. In the HTTP view, click the URL field, edit it, then press Return or **Send GET**.
+Keyboard shortcuts: `Ctrl+S` save, `Ctrl+R` run, `Ctrl+B` build an executable, `Ctrl+Shift+B` compile bytecode, `Ctrl+Shift+F` format, `Ctrl+T` test, arrow keys move the editor cursor, `F2` rename the selected file, and `Ctrl+D` then type `DELETE` to confirm deletion. `Ctrl+Alt+S` opens Save As. Click **New file** in the explorer to enter a filename. The Search view runs a project search in a background task. The Tasks view shows queued, running and completed work. In the HTTP view, edit the URL, toggle the method between GET and POST, and click **Send**; click the body panel to edit a POST JSON body.
 
 The current Red HTTP client is plain HTTP only. The source editor is intentionally a lightweight buffer/editor foundation, not a language-server editor.

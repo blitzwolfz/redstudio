@@ -2,7 +2,9 @@
 // only the GUI owner reads and renders them.
 import "../tools/red_toolchain.red" as red_toolchain;
 import "../inspector/http.red" as http_inspector;
+import "../project/search.red" as project_search;
 import "json" as json;
+import "std/path" as path;
 
 fun worker(jobs, results) {
   for (;;) {
@@ -11,25 +13,38 @@ fun worker(jobs, results) {
     try {
       results.try_send({"event": "running", "id": job["id"]});
       let result = nil;
-      if (job["action"] == "http-get") {
-        const reply = http_inspector.get(job["file"]);
+      if (job["action"] == "http-get" or job["action"] == "http-post") {
+        let reply = nil;
+        if (job["action"] == "http-post") {
+          reply = http_inspector.post(job["file"], job["body"]);
+        } else { reply = http_inspector.get(job["file"]); }
         let body = reply["body"];
         if (reply["json"] != nil) { body = json.stringify(reply["json"], 2); }
         let header_text = "";
         for (let name in reply["headers"].keys().sort()) {
           header_text += "${name}: ${reply["headers"][name]}\n";
         }
-        result = {"action": "GET", "command": job["file"], "code": reply["status"],
+        let method = "GET";
+        if (job["action"] == "http-post") { method = "POST"; }
+        result = {"action": method, "command": job["file"], "code": reply["status"],
                   "out": "HTTP ${reply["status"]} (${reply["duration"]}s)\n" +
                          header_text + "\n" + body,
                   "err": "", "status": "completed"};
+      } else if (job["action"] == "search") {
+        const found = project_search.find(job["cwd"], job["file"]);
+        let text = "${found.len()} matches for '${job["file"]}'\n";
+        for (let match in found) {
+          text += "${path.base(match["file"])}:${match["line"]}  ${match["text"]}\n";
+        }
+        result = {"action": "Search", "command": job["file"], "code": 0,
+                  "out": text, "err": "", "status": "completed"};
       } else {
         result = red_toolchain.invoke(job["action"], job["file"], job["cwd"]);
       }
       result.set("id", job["id"]);
       result.set("started", job["started"]);
       result.set("duration", time() - job["started"]);
-      if (job["action"] == "http-get") {
+      if (job["action"] == "http-get" or job["action"] == "http-post") {
         if (result["code"] < 200 or result["code"] >= 300) {
           result["status"] = "failed";
         }
@@ -58,10 +73,10 @@ class Manager {
     }
   }
 
-  submit(action, file, cwd) {
+  submit(action, file, cwd, body = "") {
     const id = this.next_id;
     this.next_id += 1;
-    const job = {"id": id, "action": action, "file": file,
+    const job = {"id": id, "action": action, "file": file, "body": body,
                  "cwd": cwd, "started": time(), "status": "queued"};
     this.tasks.push(job);
     this.jobs.send(job);

@@ -40,6 +40,11 @@ class RedStudio {
     this.manager = task_manager.Manager(2, headless);
     this.url = "http://127.0.0.1:8080/api/status";
     this.url_focus = false;
+    this.http_focus = "";
+    this.http_method = "GET";
+    this.http_body = "{}";
+    this.search_query = "";
+    this.search_focus = false;
     this.prompt_mode = "";
     this.prompt_value = "";
     this.selected_path = nil;
@@ -97,6 +102,14 @@ class RedStudio {
     this.manager.submit(action, target, this.project.root);
     this.output = "${action} queued · ${path.base(doc.path)}";
     this.status = "${action} running in background";
+  }
+
+  submit_http() {
+    let action = "http-get";
+    if (this.http_method == "POST") { action = "http-post"; }
+    this.manager.submit(action, this.url, this.project.root, this.http_body);
+    this.output = "${this.http_method} ${this.url} queued";
+    this.status = "HTTP request running in background";
   }
 
   poll_tasks() {
@@ -218,12 +231,25 @@ class RedStudio {
       if (i == this.active) { tab_color = TEXT; }
       s.text(x, 132, label, tab_color, 12);
     }
-    if (this.page == "HTTP") {
+    if (this.page == "Search") {
+      s.text(286, 196, "PROJECT SEARCH", MUTED, 11);
+      s.input(286, 220, 760, 42, this.search_query, TEXT, SURFACE, BORDER);
+      s.button(1062, 220, 110, 42, "Search", color.WHITE, ACCENT);
+      s.text(286, 282, "Searches Red source, docs, JSON and configuration files in a background task.", MUTED, 12);
+    } else if (this.page == "HTTP") {
       s.text(286, 196, "HTTP INSPECTOR", MUTED, 11);
       s.input(286, 220, 760, 42, this.url, TEXT, SURFACE, BORDER);
-      s.button(1062, 220, 110, 42, "Send GET", color.WHITE, ACCENT);
+      s.button(1062, 220, 110, 42, "Send", color.WHITE, ACCENT);
+      s.button(1184, 220, 118, 42, this.http_method, TEXT, SURFACE);
+      s.rect(286, 310, 760, 132, BORDER, SURFACE, 5, 1);
+      let body_lines = lines_for(this.http_body);
+      let body_count = body_lines.len();
+      if (body_count > 5) { body_count = 5; }
+      for (let i in range(0, body_count)) {
+        s.text(302, 330 + i * 20, body_lines[i], TEXT, 12);
+      }
       s.text(286, 282, "Plain HTTP · localhost friendly · HTTPS is not available in Red's current client", MUTED, 12);
-      s.text(286, 322, "Response headers and JSON body appear in the Output panel.", TEXT, 13);
+      s.text(286, 458, "Click the body to edit JSON. Response headers and JSON body appear below.", TEXT, 13);
     } else if (this.page == "JSON") {
       s.text(286, 196, "JSON INSPECTOR", MUTED, 11);
       const doc = this.current_document();
@@ -362,15 +388,33 @@ class RedStudio {
         this.prompt_mode = "delete"; this.prompt_value = "";
         this.status = "Confirm deletion: type DELETE and press Return"; return;
       }
-      if (this.page == "HTTP" and this.url_focus) {
-        if (one.is_text()) { this.url += one.text; return; }
-        if (one.key == "backspace" and this.url.len() > 0) {
-          this.url = this.url.sub(0, this.url.len() - 1); return;
+      if (this.page == "Search" and this.search_focus) {
+        if (one.is_text()) { this.search_query += one.text; return; }
+        if (one.key == "backspace" and this.search_query.len() > 0) {
+          this.search_query = this.search_query.sub(0, this.search_query.len() - 1); return;
         }
         if (one.key == "enter") {
-          this.manager.submit("http-get", this.url, this.project.root);
-          this.output = "GET ${this.url} queued";
+          this.manager.submit("search", this.search_query, this.project.root);
+          this.output = "Search queued for '${this.search_query}'";
           return;
+        }
+      }
+      if (this.page == "HTTP" and this.http_focus != "") {
+        let text = this.url;
+        if (this.http_focus == "body") { text = this.http_body; }
+        if (one.is_text()) {
+          text += one.text;
+          if (this.http_focus == "body") { this.http_body = text; } else { this.url = text; }
+          return;
+        }
+        if (one.key == "backspace" and text.len() > 0) {
+          text = text.sub(0, text.len() - 1);
+          if (this.http_focus == "body") { this.http_body = text; } else { this.url = text; }
+          return;
+        }
+        if (one.key == "enter") {
+          if (this.http_focus == "body" and !one.ctrl) { this.http_body += "\n"; return; }
+          this.submit_http(); return;
         }
       }
       const doc = this.current_document();
@@ -395,6 +439,7 @@ class RedStudio {
       const slot = floor((y - 68) / 54);
       const pages = ["Explorer", "Search", "Tasks", "HTTP", "JSON", "Gallery"];
       if (slot >= 0 and slot < pages.len()) { this.page = pages[slot]; this.status = "${this.page} view"; }
+      this.search_focus = false; this.http_focus = "";
     } else if (x >= 66 and x < 242 and y >= 176 and y < 214) {
       this.directory = this.project.root;
       this.refresh_entries();
@@ -407,13 +452,23 @@ class RedStudio {
         this.prompt_mode = "save as"; this.prompt_value = current.name;
         this.page = "Explorer"; this.status = "Save As: enter a new name";
       }
+    } else if (this.page == "Search" and y >= 220 and y < 270 and x >= 286 and x < 1046) {
+      this.search_focus = true;
+    } else if (this.page == "Search" and y >= 220 and y < 270 and x >= 1062 and x < 1174) {
+      this.search_focus = false;
+      this.manager.submit("search", this.search_query, this.project.root);
+      this.output = "Search queued for '${this.search_query}'";
     } else if (this.page == "HTTP" and y >= 220 and y < 270 and x >= 286 and x < 1046) {
-      this.url_focus = true;
+      this.http_focus = "url";
     } else if (this.page == "HTTP" and y >= 220 and y < 270 and x >= 1062 and x < 1174) {
-      this.url_focus = false;
-      this.manager.submit("http-get", this.url, this.project.root);
-      this.output = "GET ${this.url} queued";
-      this.status = "HTTP request running in background";
+      this.http_focus = "";
+      this.submit_http();
+    } else if (this.page == "HTTP" and y >= 220 and y < 270 and x >= 1184 and x < 1302) {
+      this.http_focus = "";
+      if (this.http_method == "GET") { this.http_method = "POST"; }
+      else { this.http_method = "GET"; }
+    } else if (this.page == "HTTP" and y >= 310 and y < 442 and x >= 286 and x < 1046) {
+      this.http_focus = "body";
     } else if (x >= 240 and x < 500 and y >= 244 and y < 830) {
       const index = floor((y - 264) / 32);
       if (index >= 0 and index < this.entries.len()) {

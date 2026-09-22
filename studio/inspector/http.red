@@ -15,3 +15,20 @@ fun get(target) {
   return {"status": response.status, "headers": response.headers.entries,
           "body": body, "json": parsed, "duration": time() - started};
 }
+
+fun post(target, body) {
+  if (!target.starts_with("http://")) {
+    throw error("The inspector supports plain HTTP URLs only", target, "http");
+  }
+  const started = time();
+  let options = {"body": body, "timeout": 8, "follow": 2,
+                 "headers": {"content-type": "application/json"}};
+  try { options = {"json": json.parse(body), "timeout": 8, "follow": 2}; }
+  catch (e: "json") { }
+  const response = http.post(target, options);
+  let parsed = nil;
+  try { parsed = json.parse(response.body); }
+  catch (e: "json") { parsed = nil; }
+  return {"status": response.status, "headers": response.headers.entries,
+          "body": response.body, "json": parsed, "duration": time() - started};
+}

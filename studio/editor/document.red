@@ -22,15 +22,25 @@ class Document {
         this.recovered = true;
       }
     }
-    this.cursor = this.contents.char_len();
+    this.cursor = 0;
     this.scroll = 0;
     this.encoding = "UTF-8";
+    this.recovery_due = nil;
   }
 
   dirty() { return this.contents != this.saved; }
 
   recovery_path(file) {
     return env("TMPDIR", "/tmp") + "/red-studio-" + crc32.hex(crc32.of(file)) + ".recovery";
+  }
+
+  // Recovery copies are written shortly after typing pauses rather than on
+  // every keystroke; `now` writes any pending copy straight away.
+  flush_recovery(now) {
+    if (this.recovery_due == nil) { return this; }
+    if (!now and time() - this.recovery_due < 0.75) { return this; }
+    this.recovery_due = nil;
+    return this.persist_recovery();
   }
 
   persist_recovery() {
@@ -48,7 +58,7 @@ class Document {
     this.contents = chars.slice(0, this.cursor).join("") + value +
                     chars.slice(this.cursor).join("");
     this.cursor += value.char_len();
-    this.persist_recovery();
+    this.recovery_due = time();
     return this;
   }
 
@@ -58,7 +68,7 @@ class Document {
       this.contents = chars.slice(0, this.cursor - 1).join("") +
                       chars.slice(this.cursor).join("");
       this.cursor -= 1;
-      this.persist_recovery();
+      this.recovery_due = time();
     }
     return this;
   }
@@ -104,6 +114,7 @@ class Document {
     if (this.path == nil) { throw error("Save As needs a destination path", nil, "io"); }
     fs.write_atomic(this.path, this.contents);
     this.saved = this.contents;
+    this.recovery_due = nil;
     if (is_file(this.recovery)) { remove_file(this.recovery); }
     this.recovered = false;
     return this.path;
@@ -117,6 +128,7 @@ class Document {
     this.path = target;
     this.name = path.base(target);
     this.saved = this.contents;
+    this.recovery_due = nil;
     if (is_file(this.recovery)) { remove_file(this.recovery); }
     this.recovery = this.recovery_path(target);
     this.recovered = false;

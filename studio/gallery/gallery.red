@@ -1,22 +1,56 @@
-// Native component gallery scene, drawn with the same pixel primitives as the app.
+// Component gallery, drawn with the same pixel primitives and theme as the app.
 import "andy/native_gui" as gui;
-import "andy/color" as color;
+import "../ui/theme.red" as theme;
 
-fun scene(width = 1280, height = 780) {
-  const s = gui.Scene(width, height);
-  s.clear(color.rgb(0x17, 0x1b, 0x23));
-  s.text(44, 44, "Native component gallery", color.rgb(0xf0, 0xf2, 0xf6), 27);
-  s.text(44, 82, "Pixel scene primitives used throughout Red Studio", color.rgb(0x98, 0xa5, 0xb8), 14);
-  s.text(44, 136, "BUTTONS", color.rgb(0x98, 0xa5, 0xb8), 11);
-  s.button(44, 158, 144, 42, "Primary", color.WHITE, color.rgb(0xe0, 0x5b, 0x50));
-  s.button(204, 158, 144, 42, "Secondary", color.rgb(0xf0, 0xf2, 0xf6), color.rgb(0x43, 0x4d, 0x5e));
-  s.text(44, 240, "INPUT", color.rgb(0x98, 0xa5, 0xb8), 11);
-  s.input(44, 262, 360, 42, "Search components…", color.rgb(0xf0, 0xf2, 0xf6), color.rgb(0x2b, 0x33, 0x41), color.rgb(0x3b, 0x45, 0x55));
-  s.text(44, 342, "SURFACES", color.rgb(0x98, 0xa5, 0xb8), 11);
-  s.rect(44, 362, 560, 150, color.rgb(0x3b, 0x45, 0x55), color.rgb(0x20, 0x26, 0x31), 10, 1);
-  s.text(66, 392, "Native scene card", color.rgb(0xf0, 0xf2, 0xf6), 18);
-  s.text(66, 425, "Rounded surfaces, borders and proportional text.", color.rgb(0x98, 0xa5, 0xb8), 13);
-  s.rect(44, 544, 410, 76, color.rgb(0xe0, 0x5b, 0x50), color.rgb(0x2b, 0x33, 0x41), 8, 1);
-  s.text(66, 573, "Active focus state", color.rgb(0xf0, 0xf2, 0xf6), 16);
+fun draw(s, x, y, width, height) {
+  s.fill(x, y, width, height, theme.INK);
+  const left = x + 32;
+  s.text(left, y + 26, "Components", theme.TEXT, 17, 1);
+  s.text(left, y + 54, "The controls Red Studio is built from, drawn by the native scene renderer.", theme.MUTED, 12.5);
+
+  let top = y + 96;
+  s.text(left, top, "Buttons", theme.TEXT, 12.5, 1);
+  theme.primary_button(s, left, top + 24, 76, 32, "Search");
+  theme.secondary_button(s, left + 88, top + 24, 76, 32, "Cancel");
+
+  top += 84;
+  s.text(left, top, "Fields", theme.TEXT, 12.5, 1);
+  theme.field(s, left, top + 24, 300, 32, "", false, "Text to find");
+  theme.field(s, left + 316, top + 24, 300, 32, "http://127.0.0.1:8080", true);
+
+  top += 84;
+  s.text(left, top, "Tabs", theme.TEXT, 12.5, 1);
+  s.fill(left, top + 24, 352, 36, theme.PANEL);
+  s.fill(left, top + 24, 176, 35, theme.INK);
+  s.fill(left, top + 57, 176, 2, theme.FOCUS);
+  theme.file_badge(s, left + 12, top + 35, "main.red");
+  s.text(left + 34, theme.ty(top + 42, 12.5), "main.red", theme.TEXT, 12.5);
+  theme.file_badge(s, left + 188, top + 35, "README.md");
+  s.text(left + 210, theme.ty(top + 42, 12.5), "README.md", theme.MUTED, 12.5);
+
+  top += 88;
+  s.text(left, top, "File marks", theme.TEXT, 12.5, 1);
+  let mx = left;
+  for (let name in ["main.red", "package.json", "README.md", "build.sh", "logo.png", "LICENSE"]) {
+    theme.file_badge(s, mx, top + 28, name);
+    s.text(mx + 22, theme.ty(top + 35, 12.5), name, theme.TEXT, 12.5);
+    mx += 132;
+  }
+
+  top += 64;
+  s.text(left, top, "Status", theme.TEXT, 12.5, 1);
+  let sx = left;
+  for (let row in [["Running", theme.FOCUS], ["Queued", theme.AMBER],
+                   ["Completed", theme.GREEN], ["Failed", theme.ERROR]]) {
+    s.rect(sx, top + 31, 8, 8, row[1], row[1], 4, 1);
+    s.text(sx + 16, theme.ty(top + 35, 12.5), row[0], theme.TEXT, 12.5);
+    sx += 120;
+  }
   return s;
+}
+
+// A standalone scene of the gallery, for previews outside the workbench.
+fun scene(width = 1136, height = 596) {
+  const s = gui.Scene(width, height);
+  return draw(s, 0, 0, width, height);
 }

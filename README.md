@@ -39,11 +39,10 @@ The current Red HTTP client is plain HTTP only. The source editor is intentional
 
 ## Standalone executable
 
-Build the standalone macOS executable from the Red interpreter in the sibling checkout:
+Build the standalone macOS executable and place its native window backend beside it:
 
 ```sh
-mkdir -p dist
-../Red/build/red build studio/main.red -o dist/RedStudio
+./studio/build.sh
 ```
 
-Launch the bundled program with the native backend using `./studio/run-built.sh`, or render it without a window using `./studio/run-built-headless.sh`. The launcher supplies the sibling `andy-gui` backend and project path. Set `RED_EXECUTABLE` only for the source-based launch scripts; the standalone program does not need the Red interpreter at runtime.
+You can then launch `./dist/RedStudio` directly. The build also provides `./studio/run-built.sh` and `./studio/run-built-headless.sh`. Set `RED_EXECUTABLE` only for source-based launches or to choose a different build interpreter.

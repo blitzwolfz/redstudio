@@ -317,6 +317,9 @@ class RedStudio {
     const output = env("RED_STUDIO_SCENE", "/tmp/red-studio.scene");
     write_file(output, this.draw().lines().join("\n") + "\n");
     print("Red Studio pixel scene rendered headlessly: ${output}");
+    const backend = native.executable();
+    if (backend != nil) { print("Native GUI backend found: ${backend}"); }
+    else { print("Native GUI backend is unavailable; headless rendering is unaffected"); }
   }
 
   dispatch(one) {

@@ -45,4 +45,6 @@ Build the standalone macOS executable and place its native window backend beside
 ./studio/build.sh
 ```
 
-You can then launch `./dist/RedStudio` directly. The build also provides `./studio/run-built.sh` and `./studio/run-built-headless.sh`. Set `RED_EXECUTABLE` only for source-based launches or to choose a different build interpreter.
+Red's `build` command bundles the shipped standard library modules, including `std` and `andy`, into Red Studio. The native `andy-gui` window process remains a platform-specific companion, so the build script places it beside `dist/RedStudio`.
+
+You can then launch `./dist/RedStudio` directly. The build also provides `./studio/run-built.sh` and `./studio/run-built-headless.sh`; these use the packaged backend and do not require the Red checkout after building. Set `RED_EXECUTABLE` only for source-based launches or to choose a different build interpreter.

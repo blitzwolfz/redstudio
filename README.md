@@ -26,6 +26,7 @@ Headless mode writes the native scene protocol to `/tmp/red-studio.scene` (overr
 
 - Project explorer with lazy one-directory-at-a-time navigation, text-file tabs, create, rename and confirmed file delete.
 - Per-tab editing buffers, dirty markers, atomic save, and basic keyboard editing.
+- Dirty buffers are written to temporary recovery files and restored on a later launch.
 - Background Red run, build and test jobs with output and duration reporting.
 - HTTP GET inspector for plain HTTP, including response headers and JSON formatting.
 - JSON file view and native component gallery.

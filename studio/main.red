@@ -69,7 +69,9 @@ class RedStudio {
     try {
       this.documents.push(document.Document(file));
       this.active = this.documents.len() - 1;
-      this.status = "Opened ${path.base(file)}";
+      if (this.documents[this.active].recovered) {
+        this.status = "Recovered unsaved changes for ${path.base(file)}";
+      } else { this.status = "Opened ${path.base(file)}"; }
     } catch (e) { this.status = "Open failed: ${e.message}"; }
   }
 
